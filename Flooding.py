@@ -1,3 +1,3 @@
 class Flooding:
-  def __init__(self) :
+  def __init__(self, config) :
       pass
