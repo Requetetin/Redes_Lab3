@@ -31,12 +31,14 @@ config: dict = read_input('topologia.txt')
 # print('3. Link State Routing')
 # algorithm = input('Ingrese algoritmo: ')
 
-dvr = DVR(config, 'B')
-dvr2 = DVR(config, 'C')
-dvr.makeTable()
-dvr2.makeTable()
-dvr.updateVector('C', dvr2.vector)
+# dvr = DVR(config, 'B')
+# dvr2 = DVR(config, 'C')
+# dvr.makeTable()
+# dvr2.makeTable()
+# dvr.updateVector('C', dvr2.vector)
 
+flooding = Flooding(config, 'B')
+flooding.transmit('A')
 
 
 
