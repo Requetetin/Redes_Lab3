@@ -10,6 +10,7 @@ import asyncio
 asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from aioconsole import ainput, aprint
+import json
 
 '''
 Communication bot for communication related functions
@@ -21,7 +22,8 @@ class Communication(slixmpp.ClientXMPP):
         self.contactToAdd = addContact
         self.status = status
         self.option = 0
-        
+        self.messageToSend = ''
+
         self.room = room
         self.nick = 'amaya'
         
@@ -158,22 +160,85 @@ class Communication(slixmpp.ClientXMPP):
     -> If user is not messaging contact, show it as a new notification
     '''
     async def message(self, msg):
-        if (self.contactToTalk == None) or not (self.contactToTalk in str(msg['from'])):
+        try:
+            checkMessage = msg['body'] # a str
+            # checkMessage = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
+            checkMessage = json.loads(checkMessage) # a json
+            # creamos nuevo objeto
+            messageToSend = {
+                "from": checkMessage["from"],
+                "to": checkMessage["to"],
+                "quantNodes": checkMessage["quantNodes"] + 1,
+                "dist": checkMessage["dist"] + 1,
+                "nodes": checkMessage["nodes"] + ", " + self.boundjid.node,
+                "message": checkMessage["message"]
+            }
+
+            messageToSend = json.dumps(messageToSend) # a json
+            self.messageToSend = str(messageToSend) # a str
+
+            # TODO: Self contacttotalk tiene que mandarse desde main
+            # este contacto se obtiene depiendo del algoritmo
+            if (self.boundjid.node == 'ama19020'):
+                self.contactToTalk = 'her19376@alumchat.fun'
+                await self.chat_send_intermittent()
+        except:
+            ''
+        
+        if (self.contactToTalk == None) and (checkMessage['to'] == self.boundjid.bare):
             await aprint('\n')
             await aprint('*' * 50)
             await aprint(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
-            await aprint(msg['from'],':', msg['body'])
+            await aprint(checkMessage['from'],':', checkMessage['message'])
             await aprint('*' * 50)
-        else:
-            await aprint(msg['from'],':', msg['body'])
+
+        # if (self.contactToTalk == None) or not (self.contactToTalk in str(msg['from'])):
+        #     await aprint('\n')
+        #     await aprint('*' * 50)
+        #     await aprint(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
+        #     await aprint(msg['from'],':', msg['body'])
+        #     await aprint('*' * 50)
+        # else:
+        #     await aprint(msg['from'],':', msg['body'])
     
     '''
     Send a new message on individual chat to selected contact
     '''
-    async def chat_send(self, msg):
-        something = await ainput('>> ')
+    async def chat_send_intermittent(self):
         self.recipient = self.contactToTalk
-        self.msg = something
+        self.msg = self.messageToSend # obtenemos el mensaje como debe de mandarse
+    
+        self.send_message(mto=self.recipient,
+                        mbody=self.msg,
+                        mtype='chat')
+        await self.get_roster()
+
+    '''
+    Send a new message on individual chat to selected contact
+    '''
+    async def chat_send(self, msg):
+        something = await ainput('>> ') # esperamos enter del usuario
+        self.recipient = self.contactToTalk
+
+        # es primera vez ingresando mensaje
+        # sendMessage = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
+        try:
+            self.msg = something
+            # creamos nuevo objeto
+            messageToSend = {
+                "from": self.boundjid.bare,
+                # "to": self.contactToTalk,
+                "to": "her19376@alumchat.fun",
+                "quantNodes": 0,
+                "dist": 0,
+                "nodes": self.boundjid.node,
+                "message": self.msg 
+            }
+            messageToSend = json.dumps(messageToSend) # a json
+            self.messageToSend = str(messageToSend) # a str
+            self.msg = self.messageToSend # obtenemos el mensaje como debe de mandarse
+        except:
+            ''
 
         if (something == "BACK"):
             self.disconnect()
