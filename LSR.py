@@ -1,16 +1,17 @@
+from Dijkstra import *
+
 from dijkstar import Graph, find_path
 class LSR:
 	def __init__(self, config):
 		self.config = config
 		self.nodes = list(config.keys())
-		self.graph = Graph()
-		for key, value in self.config.items():
-			for val in value:
-				self.graph.add_edge(key, val, 1)
+		self.graph = Dijkstra(config)
 
 	def makeTable(self):
 		self.table = {}
 		for start in self.nodes:
+			self.graph = Dijkstra(self.config)
+			previous_nodes, shortest_path = self.graph.dijkstra_algorithm(start)
 			for finish in self.nodes:
-				nodes, _, _, total_costs = find_path(self.graph, start, finish)
-				self.table[(start, finish)] = [nodes, total_costs]
+				path, cost = self.graph.get_result(previous_nodes, shortest_path, start, finish)
+				self.table[(start, finish)] = path, cost
