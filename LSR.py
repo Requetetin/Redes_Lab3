@@ -3,6 +3,7 @@ from Dijkstra import *
 from dijkstar import Graph, find_path
 class LSR:
 	def __init__(self, config):
+		self.type = 'lsr'
 		self.config = config
 		self.nodes = list(config.keys())
 		self.graph = Dijkstra(config)

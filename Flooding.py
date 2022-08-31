@@ -1,5 +1,6 @@
 class Flooding:
   def __init__(self, config, start) :
+    self.type = 'fld'
     self.start = start
     self.config = config
     self.nodes = list(config.keys())

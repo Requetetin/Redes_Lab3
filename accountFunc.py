@@ -9,9 +9,10 @@ from slixmpp.xmlstream.matcher import StanzaPath
 Account bot for account related functions
 '''
 class Account(slixmpp.ClientXMPP):
-    def __init__(self, jid, password, remove=False, register=False):
+    def __init__(self, jid, password, node=None, remove=False, register=False):
         self.isNewAccount = register
         self.isLoggedIn = True
+        self.node = node
     
         slixmpp.ClientXMPP.__init__(self, jid, password)
 

@@ -1,5 +1,7 @@
+import json
 class DVR:
 	def __init__(self, config, node):
+		self.type = 'dvr'
 		self.node = node
 		self.config = config[node]
 		self.nodes = list(config.keys())
@@ -29,3 +31,9 @@ class DVR:
 		self.table[origin] = vector.copy()
 		print(self.table)
 		return changeCount
+
+	def getMessage(self, message):
+		return str(self.vector)
+	
+	def toDic(self, vector):
+		return json.loads(vector)

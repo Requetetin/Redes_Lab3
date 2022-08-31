@@ -16,13 +16,16 @@ import json
 Communication bot for communication related functions
 '''
 class Communication(slixmpp.ClientXMPP):
-    def __init__(self, jid, password, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None, room = None, status = None):
+    def __init__(self, jid, password, node = '', nodes = None, algorithm = None, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None, room = None, status = None):
         slixmpp.ClientXMPP.__init__(self, jid, password)
         self.contactToTalk = contactToTalk
         self.contactToAdd = addContact
         self.status = status
         self.option = 0
         self.messageToSend = ''
+        self.node = node
+        self.nodes = nodes
+        self.algorithm = algorithm
 
         self.room = room
         self.nick = 'amaya'
@@ -164,6 +167,18 @@ class Communication(slixmpp.ClientXMPP):
             checkMessage = msg['body'] # a str
             # checkMessage = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
             checkMessage = json.loads(checkMessage) # a json
+
+            if (self.boundjid.bare == checkMessage["to"]):
+                await aprint('\n')
+                await aprint('*' * 50)
+                await aprint(' ' * 15 + 'Mensaje de: ' + checkMessage["from"])
+                await aprint('Distancia:', checkMessage["dist"] + 1)
+                await aprint('Cantidad Nodos:', checkMessage["quantNodes"])
+                await aprint('Ruta:', checkMessage["nodes"])
+                await aprint('Mensaje:', checkMessage["message"])
+                await aprint('*' * 50)
+                return
+
             # creamos nuevo objeto
             messageToSend = {
                 "from": checkMessage["from"],
@@ -173,25 +188,40 @@ class Communication(slixmpp.ClientXMPP):
                 "nodes": checkMessage["nodes"] + ", " + self.boundjid.node,
                 "message": checkMessage["message"]
             }
+            self.messageToSend = str(json.dumps(messageToSend)) # a str
 
-            messageToSend = json.dumps(messageToSend) # a json
-            self.messageToSend = str(messageToSend) # a str
-
-            # TODO: Self contacttotalk tiene que mandarse desde main
             # este contacto se obtiene depiendo del algoritmo
-            if (self.boundjid.node == 'ama19020'):
-                self.contactToTalk = 'her19376@alumchat.fun'
-                await self.chat_send_intermittent()
-        except:
-            ''
-        
-        if (self.contactToTalk == None) and (checkMessage['to'] == self.boundjid.bare):
+            nextNode = self.node
+
+            for item in self.nodes:
+                if (messageToSend['to'] == item['username']):
+                    if (self.algorithm and self.algorithm.type == 'lsr'):
+                        nextNode = self.algorithm.table[(self.node, item['node'])][0][1]
+            for item in self.nodes:
+                if (nextNode == item['node']):
+                    nextUsername = item['username']
+
             await aprint('\n')
             await aprint('*' * 50)
-            await aprint(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
-            await aprint(checkMessage['from'],':', checkMessage['message'])
+            await aprint(' ' * 15 + 'Mensaje de: ' + checkMessage["from"])
+            await aprint('Distancia:', checkMessage["dist"] + 1)
+            await aprint('Cantidad Nodos:', checkMessage["quantNodes"] + 1)
+            await aprint('Ruta:', checkMessage["nodes"])
+            await aprint('Mensaje:', checkMessage["message"])
             await aprint('*' * 50)
 
+            self.contactToTalk = nextUsername
+            await self.chat_send_intermittent()
+
+            if (self.contactToTalk == None) and (checkMessage['to'] == self.boundjid.bare):
+                await aprint('\n')
+                await aprint('*' * 50)
+                await aprint(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
+                await aprint(checkMessage['from'],':', checkMessage['message'])
+                await aprint('*' * 50)
+        except Exception as e:
+            print('ERROR AL PARSEAR', e)
+        
         # if (self.contactToTalk == None) or not (self.contactToTalk in str(msg['from'])):
         #     await aprint('\n')
         #     await aprint('*' * 50)
@@ -217,18 +247,30 @@ class Communication(slixmpp.ClientXMPP):
     Send a new message on individual chat to selected contact
     '''
     async def chat_send(self, msg):
-        something = await ainput('>> ') # esperamos enter del usuario
-        self.recipient = self.contactToTalk
-
-        # es primera vez ingresando mensaje
-        # sendMessage = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
         try:
+            nextNode = self.node
+            for item in self.nodes:
+                if (self.contactToTalk == item['username']):
+                    if (self.algorithm and self.algorithm.type == 'lsr'):
+                        temp = self.algorithm.table[(self.node, item['node'])][0]
+                        nextNode = temp[1] if len(temp) > 1 else temp[0]
+
+            for item in self.nodes:
+                if (nextNode == item['node']):
+                    nextUsername = item['username']
+
+            if (self.node == nextNode): raise ValueError('No node found')
+
+            something = await ainput('>> ') # esperamos enter del usuario
+            self.recipient = nextUsername
+
+            # es primera vez ingresando mensaje
+            # sendMessage = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
             self.msg = something
             # creamos nuevo objeto
             messageToSend = {
                 "from": self.boundjid.bare,
-                # "to": self.contactToTalk,
-                "to": "her19376@alumchat.fun",
+                "to": self.contactToTalk,
                 "quantNodes": 0,
                 "dist": 0,
                 "nodes": self.boundjid.node,
@@ -237,17 +279,18 @@ class Communication(slixmpp.ClientXMPP):
             messageToSend = json.dumps(messageToSend) # a json
             self.messageToSend = str(messageToSend) # a str
             self.msg = self.messageToSend # obtenemos el mensaje como debe de mandarse
-        except:
-            ''
 
-        if (something == "BACK"):
-            self.disconnect()
-        else:
-            self.send_message(mto=self.recipient,
-                            mbody=self.msg,
-                            mtype='chat')
+            if (something == "BACK"):
+                self.disconnect()
+            else:
+                self.send_message(mto=self.recipient,
+                                mbody=self.msg,
+                                mtype='chat')
             await self.get_roster()
-
+        
+        except:
+            print('El nodo no pertenece a la red')
+            self.disconnect()
 
     '''
     Send a new message on groupal chat to selected room
