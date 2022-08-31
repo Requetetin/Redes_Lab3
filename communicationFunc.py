@@ -16,7 +16,9 @@ import json
 Communication bot for communication related functions
 '''
 class Communication(slixmpp.ClientXMPP):
-    def __init__(self, jid, password, node = '', nodes = None, algorithm = None, showUserList = False, addContact = None, sendMessage = False, contactToTalk = None, room = None, status = None):
+    def __init__(self, jid, password, node = '', nodes = None, algorithm = None,
+        showUserList = False, addContact = None, sendMessage = False, contactToTalk = None, 
+        sendVector = False, room = None, status = None):
         slixmpp.ClientXMPP.__init__(self, jid, password)
         self.contactToTalk = contactToTalk
         self.contactToAdd = addContact
@@ -44,7 +46,10 @@ class Communication(slixmpp.ClientXMPP):
         if (sendMessage):
             self.add_event_handler("session_start", self.start)
             self.add_event_handler("message", self.message)
-            self.add_event_handler("roster_update", self.chat_send)
+            if (sendVector):
+                self.add_event_handler("roster_update", self.chat_send_vector)
+            else:
+                self.add_event_handler("roster_update", self.chat_send)
         elif (room != None):
             self.add_event_handler('session_start', self.start_muc)
             self.add_event_handler("groupchat_message", self.muc_message)
@@ -168,6 +173,39 @@ class Communication(slixmpp.ClientXMPP):
             # checkMessage = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
             checkMessage = json.loads(checkMessage) # a json
 
+            if (checkMessage['type'] == 'vector'):
+                await aprint('\n')
+                await aprint('*' * 50)
+                await aprint(' ' * 15 + 'Mensaje de: ' + checkMessage["from"])
+                await aprint('Nodo:', checkMessage["node"])
+                await aprint('Calculando nuevo vector...')
+                vector = self.algorithm.toDic(checkMessage["vector"])
+                changes = self.algorithm.updateVector(checkMessage["node"], vector)
+                await aprint('Nuevo vector calculado')
+
+                # Verifica si hay cambios en el vector
+                if (changes == 0):
+                    await aprint('No hubo cambios en el vector')
+                else:
+                    await aprint('Cambios en el vector detectados, enviando a los vecinos')
+
+                    try:
+                        # Obtiene a los vecinos
+                        neighbours = self.get_neighbours()
+
+                        for neighbour in neighbours:
+                            self.send_message(mto=neighbour,
+                                        mbody=self.msg,
+                                        mtype='chat')
+                        await self.get_roster()
+                        await aprint('Vectores enviados')
+                    
+                    except Exception as e:
+                        await aprint('El nodo no pertenece a la red', e)
+
+                await aprint('*' * 50)
+                return
+
             if (self.boundjid.bare == checkMessage["to"]):
                 await aprint('\n')
                 await aprint('*' * 50)
@@ -181,6 +219,7 @@ class Communication(slixmpp.ClientXMPP):
 
             # creamos nuevo objeto
             messageToSend = {
+                "type": "msg",
                 "from": checkMessage["from"],
                 "to": checkMessage["to"],
                 "quantNodes": checkMessage["quantNodes"] + 1,
@@ -197,6 +236,8 @@ class Communication(slixmpp.ClientXMPP):
                 if (messageToSend['to'] == item['username']):
                     if (self.algorithm and self.algorithm.type == 'lsr'):
                         nextNode = self.algorithm.table[(self.node, item['node'])][0][1]
+                    if (self.algorithm and self.algorithm.type == 'dvr'):
+                        nextNode = self.algorithm.vector[self.algorithm.getKey(self.node, item['node'])][0]
             for item in self.nodes:
                 if (nextNode == item['node']):
                     nextUsername = item['username']
@@ -221,15 +262,6 @@ class Communication(slixmpp.ClientXMPP):
                 await aprint('*' * 50)
         except Exception as e:
             print('ERROR AL PARSEAR', e)
-        
-        # if (self.contactToTalk == None) or not (self.contactToTalk in str(msg['from'])):
-        #     await aprint('\n')
-        #     await aprint('*' * 50)
-        #     await aprint(' ' * 15 + 'NOTIFICACION:' + ' ' * 15)
-        #     await aprint(msg['from'],':', msg['body'])
-        #     await aprint('*' * 50)
-        # else:
-        #     await aprint(msg['from'],':', msg['body'])
     
     '''
     Send a new message on individual chat to selected contact
@@ -254,6 +286,8 @@ class Communication(slixmpp.ClientXMPP):
                     if (self.algorithm and self.algorithm.type == 'lsr'):
                         temp = self.algorithm.table[(self.node, item['node'])][0]
                         nextNode = temp[1] if len(temp) > 1 else temp[0]
+                    if (self.algorithm and self.algorithm.type == 'dvr'):
+                        nextNode = self.algorithm.vector[self.algorithm.getKey(self.node, item['node'])][0]
 
             for item in self.nodes:
                 if (nextNode == item['node']):
@@ -269,6 +303,7 @@ class Communication(slixmpp.ClientXMPP):
             self.msg = something
             # creamos nuevo objeto
             messageToSend = {
+                "type": "msg",
                 "from": self.boundjid.bare,
                 "to": self.contactToTalk,
                 "quantNodes": 0,
@@ -288,9 +323,47 @@ class Communication(slixmpp.ClientXMPP):
                                 mtype='chat')
             await self.get_roster()
         
-        except:
-            print('El nodo no pertenece a la red')
+        except Exception as e:
+            print('El nodo no pertenece a la red', e)
             self.disconnect()
+
+
+    def get_neighbours(self):
+        toSend = []
+        for node in self.nodes:
+            if (node['node'] in self.algorithm.neighbours):
+                toSend.append(node['username'])
+
+        # creamos nuevo objeto
+        messageToSend = {
+            "type": "vector",
+            "from": self.boundjid.bare,
+            "node": self.node,
+            "vector": self.algorithm.getMessage(), 
+        }
+        messageToSend = json.dumps(messageToSend) # a json
+        self.messageToSend = str(messageToSend) # a str
+        self.msg = self.messageToSend # obtenemos el mensaje como debe de mandarse
+
+        return toSend
+
+    '''
+    Send a new message on individual chat to selected contact
+    '''
+    async def chat_send_vector(self, msg):
+        try:
+            # Obtiene a los vecinos
+            toSend = self.get_neighbours()
+
+            for neighbour in toSend:
+                self.send_message(mto=neighbour,
+                            mbody=self.msg,
+                            mtype='chat')
+            await self.get_roster()
+        
+        except Exception as e:
+            print('El nodo no pertenece a la red', e)
+        self.disconnect()
 
     '''
     Send a new message on groupal chat to selected room

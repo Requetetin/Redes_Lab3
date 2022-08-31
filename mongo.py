@@ -20,8 +20,8 @@ def deleteAllUsers():
 if __name__ ==  '__main__':
   nodes = [
     { 'node': 'A', 'username': 'ama19357@alumchat.fun' },
-    { 'node': 'C', 'username': 'batouuz@alumchat.fun' },
-    { 'node': 'B', 'username': 'her19376@alumchat.fun' },
+    { 'node': 'B', 'username': 'batouuz@alumchat.fun' },
+    { 'node': 'C', 'username': 'her19376@alumchat.fun' },
   ]
 
   print('---> Limpiando base de datos')

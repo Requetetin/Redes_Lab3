@@ -29,7 +29,7 @@ print('1. Flooding')
 print('2. Distance Vector')
 print('3. Link State Routing')
 # option = input('Ingrese algoritmo: ')
-option = '3'
+option = '2'
 
 # dvr.updateVector('C', dvr2.vector)
 algorithm = None
@@ -40,13 +40,6 @@ elif (option == '2'):
 else:
     algorithm = LSR(config)
     algorithm.makeTable()
-# flooding = Flooding(config, 'B')
-# flooding.transmit('A')
-
-# messageExample = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
-# messageExample = json.loads(messageExample)
-
-# print(messageExample["from"])
 
 '''
 initialize notifications bot w/ user and password
@@ -85,6 +78,7 @@ Manage user menu options
 async def showMenu(algorithm):
     global option
     loggedAccount = False
+    sent = False
     nodes = getUsers()
     node = None
 
@@ -98,16 +92,35 @@ async def showMenu(algorithm):
             print('*' * 50)
         else:
             loggedInMenu()
+
+            # Distance Vector 
+            if (algorithm.type == 'dvr' and sent == False):
+                algorithm.makeTable(node)
+                start = Communication(
+                    user,
+                    password,
+                    node=node,
+                    nodes=nodes,
+                    algorithm=algorithm,
+                    sendMessage=True,
+                    sendVector=True
+                )
+
+                # Connect to the XMPP server and start processing XMPP stanzas.
+                start.connect(disable_starttls=True)
+                start.process(forever=False)
+                sent = True
+
             await initialize_bot(user, password, nodes=nodes, node=node, algorithm=algorithm)
 
         if not (loggedAccount):
             if (option == 1):
                 print('Ingrese la informacion de la nueva cuenta')
-                # user = input('Username: ')
-                user = 'her19376'
+                user = input('Username: ')
+                # user = 'her19376'
                 user = user+server
-                # password = getpass('Paswsord: ')
-                password = 'Prueba123'
+                password = getpass('Paswsord: ')
+                # password = 'Prueba123'
 
                 print('Registrando cuenta...')
                 register = Account(
