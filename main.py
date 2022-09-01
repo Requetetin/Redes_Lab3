@@ -1,4 +1,3 @@
-from getpass import getuser
 from Flooding import *
 from DVR import *
 from LSR import *
@@ -28,10 +27,8 @@ print('\t--- Seleccione su algoritmo ---')
 print('1. Flooding')
 print('2. Distance Vector')
 print('3. Link State Routing')
-# option = input('Ingrese algoritmo: ')
-option = '2'
+option = input('Ingrese algoritmo: ')
 
-# dvr.updateVector('C', dvr2.vector)
 algorithm = None
 if (option == '1'):
     algorithm = Flooding(config)
@@ -139,11 +136,9 @@ async def showMenu(algorithm):
                         node = item['node']
             elif (option == 2):
                 print('Ingrese las credenciales')
-                # user = input('Username: ')
-                user = 'her19376'
+                user = input('Username: ')
                 user = user+server
-                # password = getpass('Paswsord: ')
-                password = 'Prueba123'
+                password = getpass('Paswsord: ')
 
                 print('Iniciando sesion...', user)
                 start = Account(
