@@ -330,6 +330,8 @@ class Communication(slixmpp.ClientXMPP):
                     for item in self.nodes:
                         if item['node'] == neighbor:
                             self.contactToTalk = item['username']
+                            nextUsername = item['username']
+                            self.recipient = nextUsername
 
                             self.msg = something
                             # Objeto mensaje
