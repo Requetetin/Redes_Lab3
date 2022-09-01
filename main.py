@@ -27,12 +27,7 @@ print('\t--- Seleccione su algoritmo ---')
 print('1. Flooding')
 print('2. Distance Vector')
 print('3. Link State Routing')
-<<<<<<< HEAD
-# option = input('Ingrese algoritmo: ')
-option = '1'
-=======
 option = input('Ingrese algoritmo: ')
->>>>>>> main
 
 algorithm = None
 if (option == '1'):
