@@ -18,3 +18,6 @@ class Flooding:
           print(current, ',', node)
           self.visited[current] = True
           self.transmit(node, origin=current)
+  
+  def resetSent(self):
+    self.sent = dict.fromkeys(self.nodes, False)

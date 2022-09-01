@@ -251,6 +251,22 @@ class Communication(slixmpp.ClientXMPP):
             await aprint('Mensaje:', checkMessage["message"])
             await aprint('*' * 50)
 
+
+            if self.algorithm.type == 'fld':
+                if not self.algorithm.sent[self.node]:
+                    for neighbor in self.algorithm.route[self.node]:
+                        for item in self.nodes:
+                            if item['node'] == neighbor:
+                                nextUsername = item['username']
+                                self.recipient = nextUsername
+
+                                self.send_message(mto=self.recipient,
+                                                mbody=self.msg,
+                                                mtype='chat')
+                                await self.get_roster()
+                    self.algorithm.sent[self.node] = True
+                return
+
             self.contactToTalk = nextUsername
             await self.chat_send_intermittent()
 
@@ -324,6 +340,7 @@ class Communication(slixmpp.ClientXMPP):
                                     mtype='chat')
                 await self.get_roster()
             else:
+                self.algorithm.resetSent()
                 something = await ainput('>> ') # esperamos enter del usuario
                 self.algorithm.transmit(self.node)
                 for neighbor in self.algorithm.route[self.node]:
@@ -354,6 +371,7 @@ class Communication(slixmpp.ClientXMPP):
                                                 mbody=self.msg,
                                                 mtype='chat')
                             await self.get_roster()
+                self.algorithm.sent[self.node] = True
 
         
         except Exception as e:
