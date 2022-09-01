@@ -280,48 +280,79 @@ class Communication(slixmpp.ClientXMPP):
     '''
     async def chat_send(self, msg):
         try:
-            nextNode = self.node
-            for item in self.nodes:
-                if (self.contactToTalk == item['username']):
-                    if (self.algorithm and self.algorithm.type == 'lsr'):
-                        temp = self.algorithm.table[(self.node, item['node'])][0]
-                        nextNode = temp[1] if len(temp) > 1 else temp[0]
-                    if (self.algorithm and self.algorithm.type == 'dvr'):
-                        nextNode = self.algorithm.vector[self.algorithm.getKey(self.node, item['node'])][0]
+            if self.algorithm.type != 'fld':
+                nextNode = self.node
+                for item in self.nodes:
+                    if (self.contactToTalk == item['username']):
+                        if (self.algorithm and self.algorithm.type == 'lsr'):
+                            temp = self.algorithm.table[(self.node, item['node'])][0]
+                            nextNode = temp[1] if len(temp) > 1 else temp[0]
+                        if (self.algorithm and self.algorithm.type == 'dvr'):
+                            nextNode = self.algorithm.vector[self.algorithm.getKey(self.node, item['node'])][0]
 
-            for item in self.nodes:
-                if (nextNode == item['node']):
-                    nextUsername = item['username']
+                for item in self.nodes:
+                    if (nextNode == item['node']):
+                        nextUsername = item['username']
 
-            if (self.node == nextNode): raise ValueError('No node found')
+                if (self.node == nextNode): raise ValueError('No node found')
 
-            something = await ainput('>> ') # esperamos enter del usuario
-            self.recipient = nextUsername
+                something = await ainput('>> ') # esperamos enter del usuario
+                self.recipient = nextUsername
 
-            # es primera vez ingresando mensaje
-            # sendMessage = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
-            self.msg = something
-            # creamos nuevo objeto
-            messageToSend = {
-                "type": "msg",
-                "from": self.boundjid.bare,
-                "to": self.contactToTalk,
-                "quantNodes": 0,
-                "dist": 0,
-                "nodes": self.boundjid.node,
-                "message": self.msg 
-            }
-            messageToSend = json.dumps(messageToSend) # a json
-            self.messageToSend = str(messageToSend) # a str
-            self.msg = self.messageToSend # obtenemos el mensaje como debe de mandarse
+                # es primera vez ingresando mensaje
+                # sendMessage = '{ "from":"ama19357@alumchat.fun", "to": "ama19020@alumchat.fun", "quantNodes": 0, "dist": 0, "nodes": "", "message": "hola amigo"}'
+                self.msg = something
+                # creamos nuevo objeto
+                messageToSend = {
+                    "type": "msg",
+                    "from": self.boundjid.bare,
+                    "to": self.contactToTalk,
+                    "quantNodes": 0,
+                    "dist": 0,
+                    "nodes": self.boundjid.node,
+                    "message": self.msg 
+                }
+                messageToSend = json.dumps(messageToSend) # a json
+                self.messageToSend = str(messageToSend) # a str
+                self.msg = self.messageToSend # obtenemos el mensaje como debe de mandarse
 
-            if (something == "BACK"):
-                self.disconnect()
+                if (something == "BACK"):
+                    self.disconnect()
+                else:
+                    self.send_message(mto=self.recipient,
+                                    mbody=self.msg,
+                                    mtype='chat')
+                await self.get_roster()
             else:
-                self.send_message(mto=self.recipient,
-                                mbody=self.msg,
-                                mtype='chat')
-            await self.get_roster()
+                something = await ainput('>> ') # esperamos enter del usuario
+                self.algorithm.transmit(self.node)
+                for neighbor in self.algorithm.route[self.node]:
+                    for item in self.nodes:
+                        if item['node'] == neighbor:
+                            self.contactToTalk = item['username']
+
+                            self.msg = something
+                            # Objeto mensaje
+                            messageToSend = {
+                                "type": "msg",
+                                "from": self.boundjid.bare,
+                                "to": self.contactToTalk,
+                                "quantNodes": 0,
+                                "dist": 0,
+                                "nodes": self.boundjid.node,
+                                "message": self.msg 
+                            }
+                            messageToSend = json.dumps(messageToSend) # a json
+                            self.messageToSend = str(messageToSend) # a str
+                            self.msg = self.messageToSend # obtenemos el mensaje como debe de mandarse
+                            if (something == "BACK"):
+                                self.disconnect()
+                            else:
+                                self.send_message(mto=self.recipient,
+                                                mbody=self.msg,
+                                                mtype='chat')
+                            await self.get_roster()
+
         
         except Exception as e:
             print('El nodo no pertenece a la red', e)

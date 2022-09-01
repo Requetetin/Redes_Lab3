@@ -29,7 +29,7 @@ print('1. Flooding')
 print('2. Distance Vector')
 print('3. Link State Routing')
 # option = input('Ingrese algoritmo: ')
-option = '2'
+option = '1'
 
 # dvr.updateVector('C', dvr2.vector)
 algorithm = None
