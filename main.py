@@ -7,6 +7,7 @@ from accountFunc import *
 from communicationFunc import *
 
 import json
+from pprint import pprint
 from getpass4 import getpass
 import asyncio
 import nest_asyncio
@@ -56,7 +57,8 @@ def loggedInMenu():
     print('*' * 50)
     print('1. Chat privado')
     print('2. Cerrar sesion')
-    print('3. Salir')
+    print('3. Ver tabla')
+    print('4. Salir')
     print('-' * 50)
 
 '''
@@ -183,6 +185,13 @@ async def showMenu(algorithm):
                 # Disconnect
                 start.disconnect()
                 loggedAccount = False
+            elif (option == 3):
+                if (algorithm.type == 'lsr'):
+                    pprint(algorithm.table)
+                elif (algorithm.type == 'dvr'):
+                    pprint(algorithm.vector)
+                else:
+                    print('Este algoritmo no cuenta con tabla o vector')
             else:
                 print(' ' * 20 + 'ADIOS :)' + ' ' * 20)
                 print('*' * 50)
