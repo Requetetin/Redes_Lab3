@@ -27,7 +27,8 @@ print('\t--- Seleccione su algoritmo ---')
 print('1. Flooding')
 print('2. Distance Vector')
 print('3. Link State Routing')
-option = input('Ingrese algoritmo: ')
+# option = input('Ingrese algoritmo: ')
+option = '1'
 
 algorithm = None
 if (option == '1'):
@@ -137,8 +138,10 @@ async def showMenu(algorithm):
             elif (option == 2):
                 print('Ingrese las credenciales')
                 user = input('Username: ')
+                # user = 'ama19020'
                 user = user+server
                 password = getpass('Paswsord: ')
+                # password = '12341234'
 
                 print('Iniciando sesion...', user)
                 start = Account(
