@@ -252,9 +252,6 @@ class Communication(slixmpp.ClientXMPP):
             await aprint('Mensaje:', checkMessage["message"])
             await aprint('*' * 50)
 
-            print(type(messageToSend))
-            print((messageToSend))
-
             if self.algorithm.type == 'fld' and not self.algorithm.sent[self.node]:
                 originNode = self.node
                 for item in self.nodes:
